@@ -65,7 +65,7 @@ ifeq ($(shell :|$(CC) -fstack-protector-strong -S -xc - -o - >/dev/null 2>&1; ec
 	FLAGS += -fstack-protector-strong
 endif
 
-prefix		?= /usr/local
+prefix		?= /usr
 exec_prefix	?= $(prefix)
 bindir		?= $(exec_prefix)/bin
 datarootdir	?= $(prefix)/share
