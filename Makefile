@@ -130,6 +130,10 @@ install: $(BIN) $(MANPAGES) docs
 	cp -d README.plain.md $(DESTDIR)$(docdir)/README.md
 	cp -d doc/demo.sh $(DESTDIR)$(docdir)
 
+install-apparmor:
+	cp -r contrib/apparmor/* /etc/apparmor.d/
+	systemctl reload apparmor
+
 uninstall:
 	$(RM) $(BIN:%=$(DESTDIR)$(prefix)/bin/%)
 	$(RM) $(MANPAGES:%=$(DESTDIR)$(man1dir)/%)
