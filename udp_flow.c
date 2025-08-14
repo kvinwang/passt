@@ -164,7 +164,10 @@ static flow_sidx_t udp_flow_new(const struct ctx *c, union flow *flow,
 			flow_perror(uflow, "Unable to determine local address");
 			goto cancel;
 		}
-		if (port != tgt->oport) {
+		if (tgt->oport == 0) {
+			/* Kernel picked the port, update our flow with the actual port */
+			uflow->f.side[TGTSIDE].oport = port;
+		} else if (port != tgt->oport) {
 			flow_err(uflow, "Unexpected local port");
 			goto cancel;
 		}

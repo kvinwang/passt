@@ -381,10 +381,6 @@ uint8_t fwd_nat_from_tap(const struct ctx *c, uint8_t proto,
 
 	/* Let the kernel pick a host side source port */
 	tgt->oport = 0;
-	if (proto == IPPROTO_UDP) {
-		/* But for UDP we preserve the source port */
-		tgt->oport = ini->eport;
-	}
 
 	return PIF_HOST;
 }
@@ -432,9 +428,6 @@ uint8_t fwd_nat_from_splice(const struct ctx *c, uint8_t proto,
 
 	/* Let the kernel pick a host side source port */
 	tgt->oport = 0;
-	if (proto == IPPROTO_UDP)
-		/* But for UDP preserve the source port */
-		tgt->oport = ini->eport;
 
 	return PIF_HOST;
 }
@@ -524,9 +517,6 @@ uint8_t fwd_nat_from_host(const struct ctx *c, uint8_t proto,
 
 		/* Let the kernel pick source port */
 		tgt->oport = 0;
-		if (proto == IPPROTO_UDP)
-			/* But for UDP preserve the source port */
-			tgt->oport = ini->eport;
 
 		return PIF_SPLICE;
 	}
