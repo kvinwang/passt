@@ -34,7 +34,10 @@
   pivot_root	"/tmp/" -> "/tmp/",
   umount	"/",
 
-  owner @{PROC}/@{pid}/uid_map		r,	# conf_ugid()
+  owner @{PROC}/@{pid}/uid_map		rw,	# conf_ugid(), make_ugid_map()
+  owner @{PROC}/@{pid}/gid_map		w,	# make_ugid_map()
+  owner @{PROC}/@{pid}/setgroups	w,
+  ptrace				r,	# isolate_user(), opens the holder's ns/user
 
   @{PROC}/sys/net/ipv4/ip_local_port_range r,	# fwd_probe_ephemeral()
 
