@@ -379,7 +379,13 @@ uint8_t fwd_nat_from_tap(const struct ctx *c, uint8_t proto,
 	else
 		tgt->oaddr.a6 = c->ip6.addr_out;
 
-	/* Let the kernel pick a host side source port */
+	/* Let the kernel pick a host side source port, for UDP too.  Guests
+	 * behind separate passt instances on one host routinely share a source
+	 * port (a fixed WireGuard ListenPort, say): preserving it would bind
+	 * every instance to the same host port with SO_REUSEADDR, and once two
+	 * of them talk to the same peer the kernel delivers every reply to
+	 * just one of the identical connected sockets.
+	 */
 	tgt->oport = 0;
 
 	return PIF_HOST;
@@ -428,6 +434,9 @@ uint8_t fwd_nat_from_splice(const struct ctx *c, uint8_t proto,
 
 	/* Let the kernel pick a host side source port */
 	tgt->oport = 0;
+	if (proto == IPPROTO_UDP)
+		/* But for UDP preserve the source port */
+		tgt->oport = ini->eport;
 
 	return PIF_HOST;
 }
@@ -517,6 +526,9 @@ uint8_t fwd_nat_from_host(const struct ctx *c, uint8_t proto,
 
 		/* Let the kernel pick source port */
 		tgt->oport = 0;
+		if (proto == IPPROTO_UDP)
+			/* But for UDP preserve the source port */
+			tgt->oport = ini->eport;
 
 		return PIF_SPLICE;
 	}

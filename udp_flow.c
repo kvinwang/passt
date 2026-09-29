@@ -147,13 +147,14 @@ static flow_sidx_t udp_flow_new(const struct ctx *c, union flow *flow,
 				goto cancel;
 	}
 
-	if (uflow->s[TGTSIDE] >= 0 && inany_is_unspecified(&tgt->oaddr)) {
+	if (uflow->s[TGTSIDE] >= 0 &&
+	    (inany_is_unspecified(&tgt->oaddr) || !tgt->oport)) {
 		/* When we target a socket, we connect() it, but might not
-		 * always bind(), leaving the kernel to pick our address.  In
-		 * that case connect() will implicitly bind() the socket, but we
-		 * need to determine its local address so that we can match
-		 * reply packets back to the correct flow.  Update the flow with
-		 * the information from getsockname() */
+		 * always bind(), leaving the kernel to pick our address or
+		 * port.  In that case connect() will implicitly bind() the
+		 * socket, but we need to determine its local address so that
+		 * we can match reply packets back to the correct flow.  Update
+		 * the flow with the information from getsockname() */
 		union sockaddr_inany sa;
 		socklen_t sl = sizeof(sa);
 		in_port_t port;
@@ -164,8 +165,9 @@ static flow_sidx_t udp_flow_new(const struct ctx *c, union flow *flow,
 			flow_perror(uflow, "Unable to determine local address");
 			goto cancel;
 		}
-		if (tgt->oport == 0) {
-			/* Kernel picked the port, update our flow with the actual port */
+		if (!tgt->oport) {
+			/* The kernel picked our port: record it so replies
+			 * and flushed datagrams match this flow */
 			uflow->f.side[TGTSIDE].oport = port;
 		} else if (port != tgt->oport) {
 			flow_err(uflow, "Unexpected local port");
