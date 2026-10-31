@@ -2362,6 +2362,35 @@ int tcp_tap_handler(const struct ctx *c, uint8_t pif, sa_family_t af,
 	conn->inactive = false;
 	conn->tap_inactive = false;
 
+	/* SYN sent, and the reply acknowledges something else: RFC 9293,
+	 * 3.10.7.3, SYN-SENT: send a RST with the segment's ACK as sequence
+	 * and drop the segment.  This is how a peer still holding the 4-tuple
+	 * in TIME_WAIT refuses a SYN whose sequence isn't above the old
+	 * connection's: our ISNs wrap every 137s and we send no timestamps, so
+	 * a host client reusing a port within a minute of a connection started
+	 * over 68s earlier meets it.  The RST ends the TIME_WAIT (RFC 1337), so
+	 * send the SYN again instead of resetting the socket side.
+	 */
+	if ((conn->events & SOCK_ACCEPTED) && th->ack &&
+	    ntohl(th->ack_seq) != conn->seq_to_tap) {
+		unsigned int max = MIN(TCP_MAX_RETRIES,
+				       c->tcp.syn_retries +
+				       c->tcp.syn_linear_timeouts);
+
+		tcp_rst_no_conn(c, af, saddr, daddr, flow_lbl, th, l4len);
+		if (conn->retries >= max) {
+			flow_dbg(conn, "SYN refused, giving up");
+			goto reset;
+		}
+
+		flow_dbg(conn, "SYN answered by unacceptable ACK, retry");
+		conn->seq_to_tap = conn->seq_ack_from_tap;
+		if (tcp_send_flag(c, conn, SYN, now))
+			goto reset;
+		conn->retries++;
+		return 1;
+	}
+
 	if (th->ack && !(conn->events & ESTABLISHED))
 		tcp_update_seqack_from_tap(c, conn, ntohl(th->ack_seq), now);
 
